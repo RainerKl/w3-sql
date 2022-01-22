@@ -1,0 +1,89 @@
+/* 
+
+Interview task
+https://www.w3schools.com/sql/trysql.asp?filename=trysql_asc
+ 
+Second task is to provide table with employees who sold in total more than 1000 Kgs of following products (ProductID: 11, 18, 59, 69, 74, 9, 12, 33) during period started 11.7.1996 and ended 11.2.1997 (dd.MM.YYYY)
+
+Based on that list of employees answer (using SQL) following questions:
+   - How many KGs each of the employee sold and for which average price per KG?
+   - What was the total amount of money realized on these orders?
+HINT:
+   Unit "24 - 250 ml bottles" means, that there are 24 bottles with 250 ml volume each.
+
+*/
+
+-- CHECKING THE VALUES IN Unit
+
+SELECT DISTINCT ProductID, Unit
+FROM Products
+WHERE ProductID IN (11, 18, 59, 69, 74, 9, 12, 33)
+ORDER BY Unit;
+
+-- ADDING A COLUMN FOR WEIGHT
+
+ALTER TABLE Products
+ADD Weight SMALLINT(9) CHECK (Weight>=0);
+
+-- CHECK THE DATA
+
+SELECT DISTINCT Unit, Weight FROM Products
+WHERE ProductID IN (11, 18, 59, 69, 74, 9, 12, 33)
+ORDER BY Unit;
+
+-- INSERT DATA
+
+UPDATE Products SET Weight = 1 WHERE ProductID = 11;
+UPDATE Products SET Weight = 5 WHERE ProductID = 12;
+UPDATE Products SET Weight = 10 WHERE ProductID = 69;
+UPDATE Products SET Weight = 16 WHERE ProductID = 18;
+UPDATE Products SET Weight = 9 WHERE ProductID = 9;
+UPDATE Products SET Weight = 5 WHERE ProductID = 59;
+UPDATE Products SET Weight = 5 WHERE ProductID = 74;
+UPDATE Products SET Weight = 0.5 WHERE ProductID = 33;
+
+-- CHECK RESULTS
+
+SELECT DISTINCT ProductID, Unit, Weight FROM Products
+WHERE ProductID IN (11, 18, 59, 69, 74, 9, 12, 33)
+ORDER BY Unit;
+
+
+-- JOINING TABLES
+
+-- CREATE VIEW ESP AS
+SELECT E.EmployeeID, FirstName, LastName, OrderDate, P.ProductID, Quantity, Unit, Weight, Price
+FROM Products AS P
+LEFT JOIN OrderDetails AS OD ON P.ProductID = OD.ProductID
+LEFT JOIN Orders AS O ON O.OrderID = OD.OrderID
+LEFT JOIN Employees AS E ON E.EmployeeID = O.EmployeeID
+
+-- FILTERING
+
+-- CREATE VIEW ESPsubset AS
+SELECT E.EmployeeID, FirstName, LastName, OrderDate, P.ProductID, Quantity, Unit, Weight, Price
+FROM Products AS P
+LEFT JOIN OrderDetails AS OD ON P.ProductID = OD.ProductID
+LEFT JOIN Orders AS O ON O.OrderID = OD.OrderID
+LEFT JOIN Employees AS E ON E.EmployeeID = O.EmployeeID
+WHERE P.ProductID IN (11, 18, 59, 69, 74, 9, 12, 33)
+AND OrderDate >= '1996-07-11'
+AND OrderDate <= '1997-02-11';
+
+-- CALCULATIONS
+
+-- CREATE VIEW ESPcalc AS
+SELECT EmployeeID, FirstName, LastName, 
+SUM(Quantity*Weight) TotalWeight,
+SUM(Quantity*Price) TotalSales,
+ROUND(SUM(Quantity*Price)/SUM(Quantity*Weight),3) SalesPerKg
+FROM ESPsubset
+GROUP BY EmployeeID
+ORDER BY TotalWeight DESC;
+
+-- Sold a ton
+
+CREATE VIEW TopSellersTotal AS
+SELECT SUM(TotalSales)
+FROM ESPcalc
+WHERE TotalWeight>1000;
